@@ -15,20 +15,20 @@ app.use(bodyParser());
 app.use(createConnection);
 
 // Define main routes
-app.route('/todo/get').get(get);
-app.route('/todo/new').put(create);
-app.route('/todo/update').post(update);
-app.route('/todo/delete').post(del);
+app.route('/product/get').get(get);
+app.route('/product/new').put(create);
+app.route('/product/update').post(update);
+app.route('/product/delete').post(del);
 
 // Middleware to close a connection to the database
 app.use(closeConnection);
 
 
 /*
- * Retrieve all todos
+ * Retrieve all products
  */
 function get(req, res, next) {
-    r.table('todos').orderBy({index: "createdAt"}).run(req._rdbConn).then(function(cursor) {
+    r.table(config.rethinkdb.table).orderBy({index: "createdAt"}).run(req._rdbConn).then(function(cursor) {
         return cursor.toArray();
     }).then(function(result) {
         res.send(JSON.stringify(result));
@@ -37,12 +37,12 @@ function get(req, res, next) {
 }
 
 /*
- * Insert a todo
+ * Insert a product
  */
 function create(req, res, next) {
-    var todo = req.body;
-    todo.createdAt = r.now(); // Set the field `createdAt` to the current time
-    r.table('todos').insert(todo, {returnChanges: true}).run(req._rdbConn).then(function(result) {
+    var product = req.body;
+    product.createdAt = r.now(); // Set the field `createdAt` to the current time
+    r.table(config.rethinkdb.table).insert(product, {returnChanges: true}).run(req._rdbConn).then(function(result) {
         if (result.inserted !== 1) {
             handleError(res, next)(new Error("Document was not inserted."));
         }
@@ -54,35 +54,35 @@ function create(req, res, next) {
 }
 
 /*
- * Update a todo
+ * Update a product
  */
 function update(req, res, next) {
-    var todo = req.body;
-    if ((todo != null) && (todo.id != null)) {
-        r.table('todos').get(todo.id).update(todo, {returnChanges: true}).run(req._rdbConn).then(function(result) {
+    var product = req.body;
+    if ((product != null) && (product.id != null)) {
+        r.table(config.rethinkdb.table).get(product.id).update(product, {returnChanges: true}).run(req._rdbConn).then(function(result) {
             res.send(JSON.stringify(result.changes[0].new_val));
         }).error(handleError(res))
         .finally(next);
     }
     else {
-        handleError(res)(new Error("The todo must have a field `id`."));
+        handleError(res)(new Error("The product must have a field `id`."));
         next();
     }
 }
 
 /*
- * Delete a todo
+ * Delete a product
  */
 function del(req, res, next) {
-    var todo = req.body;
-    if ((todo != null) && (todo.id != null)) {
-        r.table('todos').get(todo.id).delete().run(req._rdbConn).then(function(result) {
+    var product = req.body;
+    if ((product != null) && (product.id != null)) {
+        r.table(config.rethinkdb.table).get(product.id).delete().run(req._rdbConn).then(function(result) {
             res.send(JSON.stringify(result));
         }).error(handleError(res))
         .finally(next);
     }
     else {
-        handleError(res)(new Error("The todo must have a field `id`."));
+        handleError(res)(new Error("The product must have a field `id`."));
         next();
     }
 }
@@ -123,24 +123,24 @@ r.connect(config.rethinkdb, function(err, conn) {
         process.exit(1);
     }
 
-    r.table('todos').indexWait('createdAt').run(conn).then(function(err, result) {
+    r.table(config.rethinkdb.table).indexWait('createdAt').run(conn).then(function(err, result) {
         console.log("Table and index are available, starting express...");
         startExpress();
     }).error(function(err) {
         // The database/table/index was not available, create them
         r.dbCreate(config.rethinkdb.db).run(conn).finally(function() {
-            return r.tableCreate('todos').run(conn)
+            return r.tableCreate(config.rethinkdb.table).run(conn)
         }).finally(function() {
-            r.table('todos').indexCreate('createdAt').run(conn);
+            r.table(config.rethinkdb.table).indexCreate('createdAt').run(conn);
         }).finally(function(result) {
-            r.table('todos').indexWait('createdAt').run(conn)
+            r.table(config.rethinkdb.table).indexWait('createdAt').run(conn)
         }).then(function(result) {
             console.log("Table and index are available, starting express...");
             startExpress();
             conn.close();
         }).error(function(err) {
             if (err) {
-                console.log("Could not wait for the completion of the index `todos`");
+                console.log("Could not wait for the completion of the index `products`");
                 console.log(err);
                 process.exit(1);
             }
