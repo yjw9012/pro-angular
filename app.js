@@ -28,7 +28,11 @@ app.use(closeConnection);
  * Retrieve all products
  */
 function get(req, res, next) {
-    r.table(config.rethinkdb.table).orderBy({index: "createdAt"}).run(req._rdbConn).then(function(cursor) {
+    /* r.table(config.rethinkdb.table).orderBy({index: "createdAt"}).run(req._rdbConn).then(function(cursor) {
+        return cursor.toArray();
+    } */
+    // Delete orderBy temporarily to get it working with the data that do not have createdAt property
+    r.table(config.rethinkdb.table).run(req._rdbConn).then(function(cursor) {
         return cursor.toArray();
     }).then(function(result) {
         res.send(JSON.stringify(result));
