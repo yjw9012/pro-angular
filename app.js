@@ -16,7 +16,9 @@ app.use(createConnection);
 
 // Define main routes
 app.route('/product/get').get(get);
+app.route('/order/get').get(getOrders);
 app.route('/order/new').put(create);
+app.route('/product/new').put(createProduct);
 app.route('/product/update').post(update);
 app.route('/product/delete').post(del);
 
@@ -41,12 +43,41 @@ function get(req, res, next) {
 }
 
 /*
+ * Retrieve all orders
+ */
+function getOrders(req, res, next) {
+    r.table(config.rethinkdb.orderTable).run(req._rdbConn).then(function(cursor) {
+        return cursor.toArray();
+    }).then(function(result) {
+        res.send(JSON.stringify(result));
+    }).error(handleError(res))
+    .finally(next);
+}
+
+/*
  * Insert a product
  */
 function create(req, res, next) {
     var order = req.body;
     order.createdAt = r.now(); // Set the field `createdAt` to the current time
     r.table(config.rethinkdb.orderTable).insert(order, {returnChanges: true}).run(req._rdbConn).then(function(result) {
+        if (result.inserted !== 1) {
+            handleError(res, next)(new Error("Document was not inserted."));
+        }
+        else {
+            res.send(JSON.stringify(result.changes[0].new_val));
+        }
+    }).error(handleError(res))
+    .finally(next);
+}
+
+/*
+ * Insert a product
+ */
+function createProduct(req, res, next) {
+    var product = req.body;
+    product.createdAt = r.now(); // Set the field `createdAt` to the current time
+    r.table(config.rethinkdb.table).insert(product, {returnChanges: true}).run(req._rdbConn).then(function(result) {
         if (result.inserted !== 1) {
             handleError(res, next)(new Error("Document was not inserted."));
         }

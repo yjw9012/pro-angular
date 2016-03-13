@@ -9,8 +9,6 @@
  */
 angular.module('sportsStore')
     .factory('productStorage', function ($http) {
-        var STORAGE_ID = 'products-angularjs';
-
         return {
             get: function () {
                 var url = "/product/get";
@@ -19,14 +17,6 @@ angular.module('sportsStore')
             create: function (order) {
                 var url = "/order/new";
                 return $http.put(url, order);
-            },
-            update: function (product) {
-                var url = "/product/update";
-                return $http.post(url, JSON.stringify(product));
-            },
-            delete: function(id) {
-                var url = "/product/delete";
-                return $http.post(url, JSON.stringify({id: id}));
             }
         };
 });
