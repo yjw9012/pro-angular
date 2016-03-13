@@ -16,9 +16,9 @@ angular.module('sportsStore')
                 var url = "/product/get";
                 return $http.get(url);
             },
-            create: function (product) {
-                var url = "/product/new";
-                return $http.put(url, product);
+            create: function (order) {
+                var url = "/order/new";
+                return $http.put(url, order);
             },
             update: function (product) {
                 var url = "/product/update";

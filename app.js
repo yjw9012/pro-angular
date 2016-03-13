@@ -16,7 +16,7 @@ app.use(createConnection);
 
 // Define main routes
 app.route('/product/get').get(get);
-app.route('/product/new').put(create);
+app.route('/order/new').put(create);
 app.route('/product/update').post(update);
 app.route('/product/delete').post(del);
 
@@ -44,9 +44,9 @@ function get(req, res, next) {
  * Insert a product
  */
 function create(req, res, next) {
-    var product = req.body;
-    product.createdAt = r.now(); // Set the field `createdAt` to the current time
-    r.table(config.rethinkdb.table).insert(product, {returnChanges: true}).run(req._rdbConn).then(function(result) {
+    var order = req.body;
+    order.createdAt = r.now(); // Set the field `createdAt` to the current time
+    r.table(config.rethinkdb.orderTable).insert(order, {returnChanges: true}).run(req._rdbConn).then(function(result) {
         if (result.inserted !== 1) {
             handleError(res, next)(new Error("Document was not inserted."));
         }
@@ -128,8 +128,8 @@ r.connect(config.rethinkdb, function(err, conn) {
     }
 
     r.table(config.rethinkdb.table).indexWait('createdAt').run(conn).then(function(err, result) {
-        console.log("Table and index are available, starting express...");
-        startExpress();
+        console.log("Products Table and index are available, starting express...");
+        connectToOrdersTable();
     }).error(function(err) {
         // The database/table/index was not available, create them
         r.dbCreate(config.rethinkdb.db).run(conn).finally(function() {
@@ -139,8 +139,8 @@ r.connect(config.rethinkdb, function(err, conn) {
         }).finally(function(result) {
             r.table(config.rethinkdb.table).indexWait('createdAt').run(conn)
         }).then(function(result) {
-            console.log("Table and index are available, starting express...");
-            startExpress();
+            console.log("Products Table and index are available, starting express...");
+            connectToOrdersTable();
             conn.close();
         }).error(function(err) {
             if (err) {
@@ -148,11 +148,40 @@ r.connect(config.rethinkdb, function(err, conn) {
                 console.log(err);
                 process.exit(1);
             }
-            console.log("Table and index are available, starting express...");
-            startExpress();
+            console.log("Products Table and index are available, starting express...");
+            connectToOrdersTable();
             conn.close();
         });
     });
+
+    function connectToOrdersTable() {
+        r.table(config.rethinkdb.orderTable).indexWait('createdAt').run(conn).then(function(err, result) {
+            console.log("Orders Table and index are available, starting express...");
+            startExpress();
+        }).error(function(err) {
+            // The database/table/index was not available, create them
+            r.dbCreate(config.rethinkdb.db).run(conn).finally(function() {
+                return r.tableCreate(config.rethinkdb.orderTable).run(conn)
+            }).finally(function() {
+                r.table(config.rethinkdb.orderTable).indexCreate('createdAt').run(conn);
+            }).finally(function(result) {
+                r.table(config.rethinkdb.orderTable).indexWait('createdAt').run(conn)
+            }).then(function(result) {
+                console.log("Orders Table and index are available, starting express...");
+                startExpress();
+                conn.close();
+            }).error(function(err) {
+                if (err) {
+                    console.log("Could not wait for the completion of the index `products`");
+                    console.log(err);
+                    process.exit(1);
+                }
+                console.log("Orders Table and index are available, starting express...");
+                startExpress();
+                conn.close();
+            });
+        });
+    }
 });
 
 function startExpress() {

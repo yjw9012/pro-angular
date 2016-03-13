@@ -4,7 +4,8 @@ module.exports = {
         port: 28015,
         authKey: "",
         db: "rethinkdb_ex",
-        table: "products"
+        table: "products",
+        orderTable: "orders"
     },
     express: {
         port: 3000
